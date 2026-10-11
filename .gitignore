@@ -1,0 +1,17 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+build/
+dist/
+*.spec
+venv/
+env/
+.venv/
+config.json
+history.json
+favorites.json
+statistics.json
+pending_downloads.json
+logs.txt
+assets/icon.ico
+assets/icon.png
