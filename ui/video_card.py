@@ -1,18 +1,13 @@
 """
-بطاقة عرض الفيديو — مع دعم الضغط المزدوج لفتح الفيديو + الصور المصغرة.
-متوافقة مع Python 3.8+ وتتخطى مشاكل SSL.
+بطاقة عرض الفيديو  مع مشغل مدمج.
 """
 
 import threading
 from io import BytesIO
-from typing import Callable, Optional
 
 import customtkinter as ctk
 import requests
 from PIL import Image
-import urllib3
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from core.search_engine import VideoResult
 from ui.theme import Colors, Fonts, Sizes
@@ -20,40 +15,13 @@ from utils.logger import app_logger
 from utils.helpers import format_duration, format_views
 
 
-# كاش الصور
 _thumbnail_cache = {}
-
-# جلسة مشتركة
-_session = None
-
-
-def _get_session():
-    global _session
-    if _session is None:
-        _session = requests.Session()
-        _session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/121.0.0.0 Safari/537.36"
-            ),
-            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-            "Referer": "https://www.youtube.com/",
-        })
-    return _session
 
 
 class VideoCard(ctk.CTkFrame):
     """بطاقة عرض فيديو واحد."""
 
-    def __init__(
-        self,
-        master,
-        video: VideoResult,
-        on_download: Optional[Callable] = None,
-        on_copy_url: Optional[Callable] = None,
-        **kwargs
-    ):
+    def __init__(self, master, video, on_download=None, on_copy_url=None, **kwargs):
         super().__init__(
             master,
             width=Sizes.CARD_WIDTH,
@@ -77,15 +45,9 @@ class VideoCard(ctk.CTkFrame):
         self._load_thumbnail_async()
         self._bind_hover_events()
 
-    # ═══════════════════════════════════════════
-    # 🎨 بناء البطاقة
-    # ═══════════════════════════════════════════
-
-    def _build_card(self) -> None:
-        # الصورة المصغرة
+    def _build_card(self):
         self.thumb_label = ctk.CTkLabel(
-            self,
-            text="⏳",
+            self, text="",
             font=("Segoe UI Emoji", 32),
             text_color=Colors.TEXT_MUTED,
             fg_color=Colors.BG_SECONDARY,
@@ -95,7 +57,6 @@ class VideoCard(ctk.CTkFrame):
         )
         self.thumb_label.pack(padx=10, pady=(10, 8))
 
-        # شارة المدة
         self.duration_badge = ctk.CTkLabel(
             self,
             text="  {}  ".format(format_duration(self.video.duration)),
@@ -104,57 +65,44 @@ class VideoCard(ctk.CTkFrame):
             fg_color="#000000",
             corner_radius=4,
         )
-        self.duration_badge.place(
-            in_=self.thumb_label,
-            relx=0.97, rely=0.92,
-            anchor="se"
-        )
+        self.duration_badge.place(in_=self.thumb_label, relx=0.97, rely=0.92, anchor="se")
 
-        # العنوان
         title_text = self._truncate(self.video.title, 60)
         self.title_label = ctk.CTkLabel(
-            self,
-            text=title_text,
+            self, text=title_text,
             font=Fonts.small_bold(),
             text_color=Colors.TEXT_PRIMARY,
             wraplength=Sizes.CARD_WIDTH - 30,
-            justify="right",
-            anchor="e",
+            justify="right", anchor="e",
         )
         self.title_label.pack(padx=10, pady=(0, 4), anchor="e")
 
-        # القناة
         channel_text = self._truncate(self.video.channel, 30)
         self.channel_label = ctk.CTkLabel(
-            self,
-            text="📺 {}".format(channel_text),
+            self, text=" {}".format(channel_text),
             font=Fonts.tiny(),
             text_color=Colors.TEXT_SECONDARY,
             anchor="e",
         )
         self.channel_label.pack(padx=10, anchor="e")
 
-        # معلومات
-        info_text = "👁 {}  •  📅 {}".format(
+        info_text = " {}     {}".format(
             format_views(self.video.views),
             self.video.formatted_upload_date
         )
         self.info_label = ctk.CTkLabel(
-            self,
-            text=info_text,
+            self, text=info_text,
             font=Fonts.tiny(),
             text_color=Colors.TEXT_MUTED,
             anchor="e",
         )
         self.info_label.pack(padx=10, pady=(2, 8), anchor="e")
 
-        # الأزرار
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
         btn_frame.pack(fill="x", padx=10, pady=(0, 10), side="bottom")
 
         self.download_btn = ctk.CTkButton(
-            btn_frame,
-            text="⬇️ تحميل",
+            btn_frame, text=" تحميل",
             height=Sizes.BUTTON_SMALL,
             corner_radius=Sizes.RADIUS_SM,
             font=Fonts.small_bold(),
@@ -166,8 +114,7 @@ class VideoCard(ctk.CTkFrame):
         self.download_btn.pack(side="left", fill="x", expand=True, padx=(0, 4))
 
         self.copy_btn = ctk.CTkButton(
-            btn_frame,
-            text="🔗",
+            btn_frame, text="",
             width=Sizes.BUTTON_SMALL,
             height=Sizes.BUTTON_SMALL,
             corner_radius=Sizes.RADIUS_SM,
@@ -178,93 +125,49 @@ class VideoCard(ctk.CTkFrame):
         )
         self.copy_btn.pack(side="left")
 
-    # ═══════════════════════════════════════════
-    # 🖼️ تحميل الصورة المصغرة
-    # ═══════════════════════════════════════════
-
-    def _load_thumbnail_async(self) -> None:
-        if not self.video.thumbnail and not self.video.video_id:
-            self._set_fallback_thumbnail()
+    def _load_thumbnail_async(self):
+        if not self.video.thumbnail:
             return
-
         cached = _thumbnail_cache.get(self.video.video_id)
         if cached:
             self._apply_thumbnail(cached)
             return
-
         threading.Thread(target=self._fetch_thumbnail, daemon=True).start()
 
-    def _fetch_thumbnail(self) -> None:
-        """جلب الصورة من الإنترنت — مع محاولات متعددة."""
+    def _fetch_thumbnail(self):
         try:
-            # عدة روابط بديلة
-            urls = []
-            if self.video.thumbnail:
-                urls.append(self.video.thumbnail)
-            if self.video.video_id:
-                urls.append("https://i.ytimg.com/vi/{}/hqdefault.jpg".format(self.video.video_id))
-                urls.append("https://i.ytimg.com/vi/{}/mqdefault.jpg".format(self.video.video_id))
-
-            session = _get_session()
-            img = None
-            last_err = None
-
-            for url in urls:
-                if not url:
-                    continue
-                try:
-                    r = session.get(url, timeout=15, verify=False)
-                    if r.status_code == 200 and len(r.content) > 1000:
-                        img = Image.open(BytesIO(r.content))
-                        img.load()
-                        break
-                    else:
-                        last_err = "HTTP {}".format(r.status_code)
-                except Exception as e:
-                    last_err = str(e)
-                    continue
-
-            if img is None:
-                app_logger.warning("فشل تحميل الصورة: {}".format(last_err))
-                self.after(0, self._set_fallback_thumbnail)
-                return
-
-            if img.mode not in ("RGB", "RGBA"):
-                img = img.convert("RGB")
-
+            response = requests.get(
+                self.video.thumbnail, timeout=10,
+                headers={"User-Agent": "Mozilla/5.0"},
+                verify=False
+            )
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content))
             target_w = Sizes.CARD_WIDTH - 20
             target_h = Sizes.THUMBNAIL_H
             img = self._crop_to_ratio(img, 16 / 9)
             img = img.resize((target_w, target_h), Image.LANCZOS)
-
-            ctk_img = ctk.CTkImage(
-                light_image=img,
-                dark_image=img,
-                size=(target_w, target_h)
-            )
-
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(target_w, target_h))
             _thumbnail_cache[self.video.video_id] = ctk_img
             self.after(0, lambda: self._apply_thumbnail(ctk_img))
-
         except Exception as e:
-            app_logger.error("خطأ في تحميل الصورة: {}".format(e))
+            app_logger.warning("فشل تحميل الصورة: {}".format(e))
             try:
                 self.after(0, self._set_fallback_thumbnail)
             except Exception:
                 pass
 
-    def _apply_thumbnail(self, ctk_img) -> None:
+    def _apply_thumbnail(self, ctk_img):
         try:
             self.thumb_label.configure(image=ctk_img, text="")
             self._thumbnail_image = ctk_img
-            self.thumb_label._current_image = ctk_img
-        except Exception as e:
-            app_logger.warning("فشل تطبيق الصورة: {}".format(e))
+        except Exception:
+            pass
 
-    def _set_fallback_thumbnail(self) -> None:
+    def _set_fallback_thumbnail(self):
         try:
             self.thumb_label.configure(
-                text="🎬",
+                text="",
                 font=("Segoe UI Emoji", 48),
                 text_color=Colors.TEXT_MUTED
             )
@@ -275,7 +178,6 @@ class VideoCard(ctk.CTkFrame):
     def _crop_to_ratio(img, target_ratio):
         w, h = img.size
         current_ratio = w / h
-
         if current_ratio > target_ratio:
             new_w = int(h * target_ratio)
             left = (w - new_w) // 2
@@ -284,70 +186,63 @@ class VideoCard(ctk.CTkFrame):
             new_h = int(w / target_ratio)
             top = (h - new_h) // 2
             img = img.crop((0, top, w, top + new_h))
-
         return img
 
-    # ═══════════════════════════════════════════
-    # 🎬 الأحداث
-    # ═══════════════════════════════════════════
-
-    def _on_download_clicked(self) -> None:
+    def _on_download_clicked(self):
         if self.on_download:
             self.on_download(self.video)
 
-    def _on_copy_clicked(self) -> None:
+    def _on_copy_clicked(self):
         try:
             self.clipboard_clear()
             self.clipboard_append(self.video.short_url)
-
             original_text = self.copy_btn.cget("text")
-            self.copy_btn.configure(text="✓", fg_color=Colors.SUCCESS)
+            self.copy_btn.configure(text="", fg_color=Colors.SUCCESS)
             self.after(1200, lambda: self.copy_btn.configure(
                 text=original_text, fg_color=Colors.BG_HOVER
             ))
-
             app_logger.info("تم نسخ: {}".format(self.video.short_url))
-
             if self.on_copy_url:
                 self.on_copy_url(self.video)
         except Exception as e:
-            app_logger.error("فشل نسخ الرابط: {}".format(e))
+            app_logger.error("فشل نسخ: {}".format(e))
 
-    def _bind_hover_events(self) -> None:
-        """ربط أحداث Hover + الضغط المزدوج."""
-        widgets = [
-            self, self.thumb_label, self.title_label,
-            self.channel_label, self.info_label
-        ]
+    def _bind_hover_events(self):
+        widgets = [self, self.thumb_label, self.title_label, self.channel_label, self.info_label]
         for widget in widgets:
             widget.bind("<Enter>", self._on_hover_in)
             widget.bind("<Leave>", self._on_hover_out)
             widget.bind("<Double-Button-1>", self._on_double_click)
             widget.configure(cursor="hand2")
 
-    def _on_double_click(self, event=None) -> None:
-        """فتح الفيديو في المتصفح عند الضغط المزدوج."""
-        import webbrowser
+    def _on_double_click(self, event=None):
+        """فتح الفيديو في مشغل مدمج داخل التطبيق."""
         try:
-            webbrowser.open(self.video.url)
-            app_logger.info("فتح الفيديو: {}".format(self.video.url))
+            from ui.video_player import VideoPlayerModal
+            parent = self.winfo_toplevel()
+            VideoPlayerModal(
+                parent,
+                video_url=self.video.url,
+                video_title=self.video.title
+            )
+            app_logger.info("فتح مشغل: {}".format(self.video.url))
         except Exception as e:
-            app_logger.error("فشل فتح الفيديو: {}".format(e))
+            app_logger.error("فشل فتح المشغل: {}".format(e))
 
-    def _on_hover_in(self, event=None) -> None:
+    def _on_hover_in(self, event=None):
         try:
             self.configure(border_color=Colors.ACCENT_END, border_width=2)
         except Exception:
             pass
 
-    def _on_hover_out(self, event=None) -> None:
+    def _on_hover_out(self, event=None):
         try:
             self.configure(border_color=Colors.BORDER, border_width=1)
         except Exception:
             pass
 
     @staticmethod
-    def _truncate(text: str, max_len: int) -> str:
+    def _truncate(text, max_len):
         if not text:
             return ""
         if len(text) <= max_len:

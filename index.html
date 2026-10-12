@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Media Hub - بحث وتحميل</title>
+<meta name="description" content="تطبيق سطح مكتب احترافي لتحميل الفيديوهات من يوتيوب">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:linear-gradient(135deg,#0F0F14 0%,#1A1A24 100%);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.container{max-width:900px;text-align:center}
+.logo{font-size:80px;margin-bottom:20px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+h1{font-size:52px;background:linear-gradient(135deg,#FF0055,#7B2FF7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:15px}
+.tagline{font-size:20px;color:#B0B0C0;margin-bottom:50px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:50px}
+.feature{background:rgba(255,255,255,0.05);padding:25px;border-radius:14px;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
+.feature:hover{transform:translateY(-5px);border-color:#FF0055;background:rgba(255,0,85,0.05)}
+.feature-icon{font-size:36px;margin-bottom:12px}
+.feature h3{margin-bottom:8px;color:#FF0055;font-size:18px}
+.feature p{font-size:14px;color:#B0B0C0}
+.download-btn{display:inline-block;padding:18px 50px;background:linear-gradient(135deg,#FF0055,#7B2FF7);color:#fff;text-decoration:none;border-radius:12px;font-size:18px;font-weight:bold;transition:all 0.3s;box-shadow:0 10px 30px rgba(255,0,85,0.3)}
+.download-btn:hover{transform:scale(1.05);box-shadow:0 15px 40px rgba(255,0,85,0.5)}
+.footer{margin-top:50px;color:#6C6C80;font-size:14px}
+.footer a{color:#FF0055;text-decoration:none}
+.stats{display:flex;justify-content:center;gap:40px;margin-bottom:40px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-num{font-size:28px;font-weight:bold;color:#FF0055}
+.stat-label{font-size:13px;color:#6C6C80}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="logo"></div>
+<h1>YouTube Media Hub</h1>
+<p class="tagline">ابحث  شاهد  حمل  بدون إعلانات</p>
+
+<div class="stats">
+<div class="stat"><div class="stat-num">8</div><div class="stat-label">فلاتر محتوى</div></div>
+<div class="stat"><div class="stat-num">5</div><div class="stat-label">مستويات جودة</div></div>
+<div class="stat"><div class="stat-num">100%</div><div class="stat-label">بدون إعلانات</div></div>
+<div class="stat"><div class="stat-num">4</div><div class="stat-label">صيغ مدعومة</div></div>
+</div>
+
+<div class="features">
+<div class="feature"><div class="feature-icon"></div><h3>بحث ذكي</h3><p>ابحث في يوتيوب بالكلمات أو الروابط</p></div>
+<div class="feature"><div class="feature-icon"></div><h3>تحميل بأي جودة</h3><p>من 360p حتى 1080p</p></div>
+<div class="feature"><div class="feature-icon"></div><h3>صوت فقط</h3><p>حمل MP3 بجودة عالية</p></div>
+<div class="feature"><div class="feature-icon"></div><h3>بدون إعلانات</h3><p>حماية كاملة من الإعلانات</p></div>
+<div class="feature"><div class="feature-icon"></div><h3>دعم عربي</h3><p>واجهة عربية كاملة RTL</p></div>
+<div class="feature"><div class="feature-icon"></div><h3>تحديث تلقائي</h3><p>من GitHub Releases</p></div>
+</div>
+
+<a href="https://github.com/Eng-Osama-Sadek/-youtube-media-hub/releases" class="download-btn">
+ تحميل التطبيق
+</a>
+
+<p class="footer">
+صنع بـ  بواسطة <a href="https://github.com/Eng-Osama-Sadek">Eng-Osama-Sadek</a><br>
+ 2026  للاستخدام الشخصي فقط
+</p>
+</div>
+</body>
+</html>
