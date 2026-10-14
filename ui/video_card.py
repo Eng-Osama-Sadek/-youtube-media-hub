@@ -1,5 +1,5 @@
 """
-بطاقة عرض الفيديو  مع مشغل مدمج.
+بطاقة عرض الفيديو
 """
 
 import threading
@@ -58,8 +58,7 @@ class VideoCard(ctk.CTkFrame):
         self.thumb_label.pack(padx=10, pady=(10, 8))
 
         self.duration_badge = ctk.CTkLabel(
-            self,
-            text="  {}  ".format(format_duration(self.video.duration)),
+            self, text="  {}  ".format(format_duration(self.video.duration)),
             font=Fonts.tiny(),
             text_color="#FFFFFF",
             fg_color="#000000",
@@ -216,16 +215,33 @@ class VideoCard(ctk.CTkFrame):
             widget.configure(cursor="hand2")
 
     def _on_double_click(self, event=None):
-        """فتح الفيديو في مشغل مدمج داخل التطبيق."""
+        """فتح نافذة اختيار الجودة ثم المشغل."""
+        try:
+            from ui.quality_picker import QualityPickerModal
+            parent = self.winfo_toplevel()
+
+            QualityPickerModal(
+                parent,
+                video_title=self.video.title,
+                on_confirm=lambda q, s: self._open_player(q, s)
+            )
+            app_logger.info("فتح نافذة الجودة: {}".format(self.video.url))
+        except Exception as e:
+            app_logger.error("فشل فتح نافذة الجودة: {}".format(e))
+
+    def _open_player(self, quality, streaming=True):
+        """فتح المشغل بعد اختيار الجودة."""
         try:
             from ui.video_player import VideoPlayerModal
             parent = self.winfo_toplevel()
             VideoPlayerModal(
                 parent,
                 video_url=self.video.url,
-                video_title=self.video.title
+                video_title=self.video.title,
+                quality=quality,
+                streaming=streaming
             )
-            app_logger.info("فتح مشغل: {}".format(self.video.url))
+            app_logger.info("فتح مشغل: {}p - streaming={}".format(quality, streaming))
         except Exception as e:
             app_logger.error("فشل فتح المشغل: {}".format(e))
 

@@ -16,3 +16,12 @@ logs.txt
 assets/icon.ico
 assets/icon.png
 .vercel
+mpv/
+mpv.exe
+*.7z
+*.bak
+*.bak2
+*_backup*.py
+video_player_backup*.py
+video_card.py.bak
+video_card.py.bak2
